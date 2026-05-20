@@ -1,68 +1,154 @@
 # HavokApp
 
-Frontend Expo / React organise pour se connecter au backend Express du dossier `server`.
+Expo / React Native client for the `server` folder API.
 
-## Structure
+This README reflects the current codebase on 2026-05-20.
 
-- `app/`: routes Expo Router
-- `src/api/`: client HTTP et appels backend
-- `src/components/`: composants UI reutilisables
-- `src/navigation/`: helpers de navigation
-- `src/screens/`: logique d'ecran
-- `src/theme/`: theming sombre / clair
-- `src/types/`: modeles TypeScript relies a l'API
-- `src/utils/`: formatage, debug et utilitaires
+## Implemented app surface
 
-## Variables d'environnement
+The app currently ships these routes:
 
-Cree un fichier `.env.local` a la racine de `HavokApp` en partant de `.env.example`.
+| Route | Screen | Purpose |
+|---|---|---|
+| `/` | Splash then tabs | App bootstrap |
+| `/(tabs)` | Tabs layout | Main navigation |
+| `/(tabs)/index` | Accueil | News, live event, upcoming events, recent Havok results |
+| `/(tabs)/calendrier` | Tournois | Calendar view of tournament windows |
+| `/(tabs)/players` | Joueurs | Tracked player directory |
+| `/(tabs)/settings` | Reglages | Theme preference |
+| `/window/[windowId]` | Tournament detail | Detail, cast, prizes, points, leaderboard pages |
+| `/player/[playerId]` | Player detail | Profile metrics and recent tournaments |
 
-```bash
+## What each screen uses
+
+### Accueil
+
+Calls `GET /api/home` and displays:
+
+- `actu` cards with expandable content and optional external links
+- `liveTournament`
+- first 3 `upcomingTournaments`
+- latest tracked player placements from `lastPlayedWindow`
+
+### Tournois
+
+Calls `GET /api/tournaments/calendrier` and renders a month/day tournament calendar.
+
+### Tournament detail
+
+Loads in parallel:
+
+- `GET /api/tournaments/window`
+- `GET /api/tournaments/allWindow`
+- `GET /api/tournaments/results?page=0`
+- `GET /api/tournaments/results?page=0&cumulatif=1`
+
+Implemented features:
+
+- hero image and key facts
+- expandable description
+- expandable cast section with Twitch / YouTube links
+- window-to-window navigation within the same event group
+- prizes section
+- score rules section
+- leaderboard section with:
+  - normal / cumulative switch when cumulative data exists
+  - page navigation
+  - tracked Havok players merge with `qualStatus`
+
+### Joueurs
+
+Calls `GET /api/players` and displays the tracked roster.
+
+### Player detail
+
+Calls `GET /api/player?playerId=...` and displays:
+
+- player card
+- quick metrics
+- recent tournaments with navigation back to tournament detail
+
+### Reglages
+
+Lets the user switch between:
+
+- `system`
+- `dark`
+- `light`
+
+Theme preference is stored locally.
+
+## Backend integration
+
+All business requests go through `src/api/client.ts`.
+
+### Security flow
+
+For protected routes, the app:
+
+1. sends `x-app-key`
+2. bootstraps a short session with:
+   - `POST /api/app/challenge`
+   - `POST /api/app/session`
+3. reuses `Authorization: Bearer <accessToken>`
+
+Behavior implemented in the client:
+
+- session storage in secure/local storage helpers
+- automatic session reuse until close to expiry
+- one automatic session reset + retry after a `401`
+
+### Public route
+
+`GET /api/health` is the only route called without `x-app-key`.
+
+## Environment variables
+
+Start from [HavokApp/.env.example](./.env.example).
+
+Recommended local setup:
+
+```env
 EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
-EXPO_PUBLIC_API_KEY=ton-app-api-key
+EXPO_PUBLIC_API_KEY=replace-with-your-app-api-key
 EXPO_PUBLIC_APP_ATTESTATION_MODE=development
 EXPO_PUBLIC_DEBUG_API=true
 ```
 
-Notes utiles:
+You can use `.env` or `.env.local`.
 
-- Web local: `http://localhost:3000`
-- Emulateur Android: utilise souvent `http://10.0.2.2:3000`
-- iPhone simulateur: `http://127.0.0.1:3000` fonctionne generalement
-- Appareil physique: `localhost` ne marchera pas. Utilise l'IP LAN du serveur ou une vraie URL HTTPS.
-- Le client garde `x-app-key` puis ouvre une session courte JWT avant les appels metier.
-- Le mode `development` est prevu pour Expo Go / dev builds et pour des tests preprod avec backend en `NODE_ENV=production`.
-- L'attestation native de production n'est pas encore implementee dans ce repo. Le README du serveur dit explicitement que la partie Apple/Google reste a brancher.
-- Une build mobile de production ne doit pas utiliser `localhost` comme base URL. Le client bloque ce cas.
+Network notes:
 
-## Realite prod
+- web local: `http://localhost:3000`
+- Android emulator: usually `http://10.0.2.2:3000`
+- iOS simulator: `http://127.0.0.1:3000` usually works
+- physical device: use a LAN IP or a real HTTPS URL
 
-Ce repo permet aujourd'hui :
+Production safeguard already implemented:
 
-- une app locale et preprod stable avec session JWT courte
-- un backend en `NODE_ENV=production`
-- une attestation client `development` pour tests reels
+- a non-dev build rejects `localhost` as `EXPO_PUBLIC_API_BASE_URL`
 
-Ce repo ne permet pas encore a lui seul :
+## Runtime notes
 
-- une publication store avec vraie attestation native Apple / Google
-- une configuration finale de verification device-side pour la prod publique
+- the app shows a startup splash after the native splash
+- runtime network config is logged at launch
+- API debug logs use the `HavokDebug` prefix
 
-Pour une vraie prod mobile, il faut encore implementer l'attestation native cote client et la verification associee cote serveur.
+## Commands
 
-## Debug
-
-- Les erreurs reseau et session sont maintenant logguees dans la console avec le prefixe `HavokDebug`.
-- Au lancement, le client affiche aussi la configuration reseau utile pour comprendre les problemes de connexion.
-
-## Demarrage
+Install:
 
 ```bash
 npm install
+```
+
+Run Expo:
+
+```bash
 npm start
 ```
 
-Puis lance selon la cible:
+Targets:
 
 ```bash
 npm run web
@@ -70,9 +156,20 @@ npm run android
 npm run ios
 ```
 
-## Verification
+Checks:
 
 ```bash
 npm run lint
 npm run typecheck
 ```
+
+## Verification status
+
+Verified on 2026-05-20:
+
+- `npm run lint` passes
+- `npm run typecheck` passes
+
+## Known limitation
+
+The app currently supports `development` attestation for local/dev/preprod flows. Native production attestation for Apple / Google is still not implemented in this repo.

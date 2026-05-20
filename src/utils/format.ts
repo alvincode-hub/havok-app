@@ -111,10 +111,10 @@ export function getTournamentStatusLabel(status: TournamentStatus) {
   }
 
   if (status === "upcoming") {
-    return "A venir";
+    return "À venir";
   }
 
-  return "Termine";
+  return "Terminé";
 }
 
 export function groupTournamentsByStatus<T extends TournamentListItem>(items: T[]) {

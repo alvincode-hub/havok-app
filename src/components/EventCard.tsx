@@ -31,6 +31,7 @@ export function EventCard({
   const styles = createStyles(theme.colors, featured);
   const imageUrl = resolveAssetUrl(tournament.image);
   const status = getTournamentStatus(tournament.start, tournament.end);
+  const label = getTournamentLabel(tournament);
   const cardContent = (
     <>
       {imageUrl ? (
@@ -80,7 +81,7 @@ export function EventCard({
           ) : null}
         </View>
 
-        <Text style={styles.title}>{getTournamentLabel(tournament)}</Text>
+        <Text style={styles.title}>{label}</Text>
         <Text style={styles.meta}>
           {formatDateRange(tournament.start, tournament.end)}
         </Text>
@@ -144,7 +145,7 @@ function createStyles(
       padding: 18,
     },
     image: {
-      height: featured ? 220 : 168,
+      height: featured ? 220 : 220,
       width: "100%",
     },
     imageFallback: {

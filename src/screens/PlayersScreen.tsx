@@ -1,12 +1,11 @@
-import { useDeferredValue, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { havokApi } from "@/src/api/havokApi";
 import { AppScreen } from "@/src/components/AppScreen";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ErrorState } from "@/src/components/ErrorState";
-import { LoadingState } from "@/src/components/LoadingState";
+import { PlayersScreenSkeleton } from "@/src/components/ScreenSkeletons";
 import { PlayerCard } from "@/src/components/PlayerCard";
 import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAsyncResource } from "@/src/hooks/useAsyncResource";
@@ -17,54 +16,22 @@ export function PlayersScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const styles = createStyles(theme.colors);
-  const [searchTerm, setSearchTerm] = useState("");
-  const deferredSearchTerm = useDeferredValue(searchTerm.trim().toLowerCase());
   const { data, error, isLoading, refresh } = useAsyncResource(() => {
     return havokApi.getPlayers();
   });
 
-  const filteredPlayers = (data ?? []).filter((player) => {
-    if (!deferredSearchTerm) {
-      return true;
-    }
-
-    return [player.name, player.pseudo, player.country]
-      .filter(Boolean)
-      .some((value) => {
-        return String(value).toLowerCase().includes(deferredSearchTerm);
-      });
-  });
+  const filteredPlayers = data ?? [];
 
   return (
-    <AppScreen
-      subtitle="La liste publique des joueurs suivis par Havok."
-      title="Joueurs"
-    >
-      <View>
-        <SectionHeader
-          subtitle="Recherche locale sur les joueurs recuperes depuis le backend."
-          title="Recherche"
-        />
+    <AppScreen title="Joueurs">
 
-        <TextInput
-          onChangeText={setSearchTerm}
-          placeholder="Rechercher un joueur"
-          placeholderTextColor={theme.colors.placeholder}
-          style={styles.input}
-          value={searchTerm}
-        />
-      </View>
-
-      {isLoading ? <LoadingState label="Chargement des joueurs..." /> : null}
+      {isLoading ? <PlayersScreenSkeleton /> : null}
 
       {error ? <ErrorState message={error} onRetry={refresh} /> : null}
 
       {!isLoading && !error ? (
         <View>
-          <SectionHeader
-            subtitle={`${filteredPlayers.length} joueur${filteredPlayers.length > 1 ? "s" : ""} affiche${filteredPlayers.length > 1 ? "s" : ""}.`}
-            title="Roster"
-          />
+          <SectionHeader title="Roster"/>
 
           {filteredPlayers.length > 0 ? (
             <View style={styles.list}>
@@ -101,16 +68,6 @@ function buildPlayerCaption(player: Awaited<ReturnType<typeof havokApi.getPlayer
 
 function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
   return StyleSheet.create({
-    input: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: 18,
-      borderWidth: 1,
-      color: colors.text,
-      fontSize: 15,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-    },
     list: {
       gap: 12,
     },

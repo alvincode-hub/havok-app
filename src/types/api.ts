@@ -47,6 +47,7 @@ export interface HomeNewsItem {
   description?: string | null;
   id?: string | null;
   image?: string | null;
+  link?: string | null;
   name?: string | null;
   text?: string | null;
   title?: string | null;
@@ -93,8 +94,16 @@ export interface TournamentWindowGroup {
 }
 
 export interface Prize {
+  currency?: string | null;
+  price?: number | string | null;
+  qualificationTournamentId?: string | null;
+  qualificationTournamentName?: string | null;
+  qualificationWindowId?: string | null;
+  qualificationWindowName?: string | null;
   quantity?: number | null;
+  rewardTypeDisplayName?: string | null;
   rewardType?: string | null;
+  scoringTypeDisplayName?: string | null;
   scoringType?: string | null;
   threshold?: number | null;
   value?: string | null;
@@ -165,6 +174,7 @@ export interface LeaderboardEntry {
 }
 
 export interface HavokPlayerStatus {
+  accountId?: string | null;
   image?: string | null;
   labels?: string[] | null;
   name: string;
@@ -174,6 +184,7 @@ export interface HavokPlayerStatus {
 }
 
 export interface TrackedTournamentPlayer {
+  accountId?: string | null;
   image?: string | null;
   name: string;
 }

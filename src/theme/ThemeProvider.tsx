@@ -23,6 +23,7 @@ interface ThemeContextValue {
   preference: ThemePreference;
   setPreference: (nextPreference: ThemePreference) => void;
   theme: AppTheme;
+  getTheme: () => string;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -65,6 +66,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         ? "light"
         : "dark"
       : preference;
+
   const theme = resolvedMode === "light" ? lightTheme : darkTheme;
 
   useEffect(() => {
@@ -76,6 +78,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     void writeStoredString(THEME_PREFERENCE_KEY, nextPreference);
   }
 
+  function getTheme(): string {
+    return resolvedMode;
+  }
+
   return (
     <ThemeContext.Provider
       value={{
@@ -83,6 +89,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         preference,
         setPreference,
         theme,
+        getTheme,
       }}
     >
       {children}

@@ -1,4 +1,6 @@
 import { useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { havokApi } from "@/src/api/havokApi";
@@ -6,7 +8,7 @@ import { AppScreen } from "@/src/components/AppScreen";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ErrorState } from "@/src/components/ErrorState";
 import { EventCard } from "@/src/components/EventCard";
-import { LoadingState } from "@/src/components/LoadingState";
+import { HomeScreenSkeleton } from "@/src/components/ScreenSkeletons";
 import { SectionHeader } from "@/src/components/SectionHeader";
 import { SurfaceCard } from "@/src/components/SurfaceCard";
 import { useAsyncResource } from "@/src/hooks/useAsyncResource";
@@ -24,50 +26,60 @@ export function HomeScreen() {
     return havokApi.getHome();
   });
 
-  const heroTournament =
-    data?.liveTournament ??
-    data?.upcomingTournaments[0] ??
-    data?.lastPlayedWindow?.tournament ??
-    null;
+  const liveTournament = data?.liveTournament ?? null;
   const upcomingTournaments = data?.upcomingTournaments.slice(0, 3) ?? [];
   const latestPlaces = data?.lastPlayedWindow?.places?.slice(0, 6) ?? [];
   const latestTournament = data?.lastPlayedWindow?.tournament ?? null;
   const hasNews = Boolean(data?.actu.length);
 
   return (
-    <AppScreen
-      subtitle="Le resume public Havok, branche directement sur le backend."
-      title="Accueil"
-    >
-      {isLoading ? <LoadingState label="Chargement de l accueil..." /> : null}
+    <AppScreen title="Accueil">
+      {isLoading ? <HomeScreenSkeleton /> : null}
 
       {error ? <ErrorState message={error} onRetry={refresh} /> : null}
 
-      {!isLoading && !error && heroTournament ? (
+      {!isLoading && !error ? (
         <View>
-          <SectionHeader
-            subtitle={
-              data?.liveTournament
-                ? "Le tournoi en cours passe en premier."
-                : "Le prochain tournoi important remonte en tete."
-            }
-            title="A la une"
-          />
+          <SectionHeader title="Actu"/>
 
-          <EventCard
-            featured
-            onPress={() => router.push(getWindowHref(heroTournament.windowId))}
-            tournament={heroTournament}
-          />
+          {hasNews ? (
+            <View style={styles.stack}>
+              {(data?.actu ?? []).map((item, index) => {
+                return <NewsCard item={item} key={item.id ?? `news-${index}`} />;
+              })}
+            </View>
+          ) : (
+            <EmptyState
+              description="Aucune actualité n'est disponible pour le moment."
+              title="Actu vide"
+            />
+          )}
         </View>
       ) : null}
 
       {!isLoading && !error ? (
         <View>
-          <SectionHeader
-            subtitle="Les prochaines dates publiques a ne pas manquer."
-            title="A venir"
-          />
+          <SectionHeader title="Live"/>
+
+          {liveTournament ? (
+            <EventCard
+              featured
+              key={liveTournament.windowId}
+              onPress={() => router.push(getWindowHref(liveTournament.windowId))}
+              tournament={liveTournament}
+            />
+          ) : (
+            <EmptyState
+              description="Aucun tournoi en direct en ce moment."
+              title="Pas de live"
+            />
+          )}
+        </View>
+      ) : null}
+
+      {!isLoading && !error ? (
+        <View>
+          <SectionHeader title="À  venir"/>
 
           {upcomingTournaments.length > 0 ? (
             <View style={styles.stack}>
@@ -92,28 +104,14 @@ export function HomeScreen() {
 
       {!isLoading && !error ? (
         <View>
-          <SectionHeader
-            subtitle={
-              latestTournament
-                ? `${latestTournament.tournamentName} - ${formatDate(latestTournament.start)}`
-                : "Les derniers resultats Havok s affichent ici des qu ils sont disponibles."
-            }
-            title="Derniers resultats Havok"
-          />
+          <SectionHeader title="Derniers resultats Havok"/>
 
           {latestTournament ? (
-            <Pressable
+            <EventCard
+              key={latestTournament.windowId}
               onPress={() => router.push(getWindowHref(latestTournament.windowId))}
-            >
-              <SurfaceCard style={styles.latestHeaderCard}>
-                <Text style={styles.latestHeaderTitle}>
-                  {latestTournament.tournamentName}
-                </Text>
-                <Text style={styles.latestHeaderMeta}>
-                  Ouvrir le detail du tournoi
-                </Text>
-              </SurfaceCard>
-            </Pressable>
+              tournament={latestTournament}
+            />
           ) : null}
 
           {latestPlaces.length > 0 ? (
@@ -138,21 +136,6 @@ export function HomeScreen() {
               title="Resultats indisponibles"
             />
           )}
-        </View>
-      ) : null}
-
-      {!isLoading && !error && hasNews ? (
-        <View>
-          <SectionHeader
-            subtitle="Les informations utiles remontees par le backend."
-            title="Actu"
-          />
-
-          <View style={styles.stack}>
-            {(data?.actu ?? []).map((item, index) => {
-              return <NewsCard item={item} key={item.id ?? `news-${index}`} />;
-            })}
-          </View>
         </View>
       ) : null}
     </AppScreen>
@@ -196,17 +179,38 @@ function NewsCard({ item }: { item: HomeNewsItem }) {
   const { theme } = useTheme();
   const styles = createStyles(theme.colors);
   const imageUrl = resolveAssetUrl(item.image);
+  const newsLink = normalizeNewsLink(item.link);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <SurfaceCard>
-      <View style={styles.newsCard}>
-        {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.newsImage} /> : null}
+      <View style={styles.newsWrapper}>
+        <Pressable
+          onPress={() => setIsExpanded((current) => !current)}
+          style={styles.newsHeader}
+        >
+          <View style={styles.newsCard}>
+            {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.newsImage} /> : null}
 
-        <View style={styles.newsCopy}>
-          <Text style={styles.newsTitle}>{getNewsTitle(item)}</Text>
-          <Text style={styles.newsDescription}>{getNewsDescription(item)}</Text>
-          {item.date ? <Text style={styles.newsDate}>{formatDate(item.date)}</Text> : null}
-        </View>
+            <View style={styles.newsCopy}>
+              <Text style={styles.newsTitle}>{getNewsTitle(item)}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.newsToggle}>{isExpanded ? "Masquer" : "Voir plus"}</Text>
+        </Pressable>
+
+        {isExpanded ? (
+          <View style={styles.newsDetails}>
+            <Text style={styles.newsDescription}>{getNewsDescription(item)}</Text>
+            {item.date ? <Text style={styles.newsDate}>{formatDate(item.date)}</Text> : null}
+            {newsLink ? (
+              <Pressable onPress={() => void Linking.openURL(newsLink)} style={styles.newsLinkButton}>
+                <Text style={styles.newsLinkText}>Ouvrir le lien</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </SurfaceCard>
   );
@@ -218,6 +222,24 @@ function getNewsTitle(item: HomeNewsItem) {
 
 function getNewsDescription(item: HomeNewsItem) {
   return item.description ?? item.text ?? "Nouvelle information disponible.";
+}
+
+function normalizeNewsLink(link?: string | null) {
+  if (!link) {
+    return null;
+  }
+
+  const trimmedLink = link.trim();
+
+  if (!trimmedLink) {
+    return null;
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmedLink)) {
+    return trimmedLink;
+  }
+
+  return `https://${trimmedLink}`;
 }
 
 function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
@@ -259,6 +281,10 @@ function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
       flexDirection: "row",
       gap: 14,
     },
+    newsDetails: {
+      gap: 10,
+      paddingTop: 12,
+    },
     newsCopy: {
       flex: 1,
       gap: 8,
@@ -267,6 +293,9 @@ function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
       color: colors.accent,
       fontSize: 12,
       fontWeight: "700",
+    },
+    newsHeader: {
+      gap: 10,
     },
     newsDescription: {
       color: colors.textMuted,
@@ -278,15 +307,38 @@ function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
       height: 88,
       width: 88,
     },
+    newsLinkButton: {
+      alignSelf: "flex-start",
+      backgroundColor: colors.surfaceSecondary,
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    newsLinkText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: "700",
+    },
     newsTitle: {
       color: colors.text,
       fontSize: 18,
       fontWeight: "800",
     },
+    newsToggle: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    newsWrapper: {
+      gap: 2,
+    },
     resultsGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 10,
+      marginTop: 10
     },
     stack: {
       gap: 12,

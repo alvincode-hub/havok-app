@@ -24,7 +24,7 @@ export function PlayerDetailScreen({ playerId }: { playerId: string }) {
 
   return (
     <AppScreen
-      subtitle="Profil public du joueur et derniers tournois joues."
+      subtitle="Profil du joueur et derniers tournois joués."
       title={data?.name ?? "Joueur"}
       withBackButton
     >
@@ -45,21 +45,20 @@ export function PlayerDetailScreen({ playerId }: { playerId: string }) {
 
           <View>
             <SectionHeader
-              subtitle="Les stats utiles seulement, sans details techniques."
-              title="Repere rapide"
+              title="Repère rapide"
             />
 
             <View style={styles.metricsGrid}>
               <MetricTile label="Meilleur top" value={formatPlacement(data.bestTop)} />
               <MetricTile label="Top 5" value={`${data.top5 ?? 0}`} />
-              <MetricTile label="Moy. kills" value={formatMetric(data.avgKill)} />
-              <MetricTile label="Moy. place" value={formatMetric(data.avgTop)} />
+              <MetricTile label="Kills moy. par tournoi" value={formatMetric(data.avgKill)} />
+              <MetricTile label="Place moy. par tournoi" value={formatMetric(data.avgTop)} />
             </View>
           </View>
 
           <View>
             <SectionHeader
-              subtitle="Les derniers tournois remontes par le backend."
+              subtitle="Les derniers tournois joués."
               title="Derniers tournois"
             />
 

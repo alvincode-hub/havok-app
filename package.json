@@ -4,11 +4,17 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:prod": "cross-env NODE_ENV=production expo start --clear",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "export:web": "cross-env NODE_ENV=production expo export --platform web",
     "lint": "expo lint app src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:production": "eas build --platform android --profile production",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:ios:production": "eas build --platform ios --profile production"
   },
   "dependencies": {
     "expo": "~54.0.33",
@@ -31,6 +37,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "cross-env": "^10.1.0",
+    "eas-cli": "^16.19.3",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"

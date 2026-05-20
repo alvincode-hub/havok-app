@@ -1,50 +1,81 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { formatDateRange, getTournamentLabel } from "@/src/lib/format";
-import { resolveAssetUrl } from "@/src/lib/media";
-import type { TournamentSummary } from "@/src/types/api";
-import { colors } from "@/src/theme/colors";
+import { useTheme } from "@/src/theme/ThemeProvider";
+import {
+  formatDateRange,
+  getTournamentLabel,
+  getTournamentStatus,
+  getTournamentStatusLabel,
+} from "@/src/utils/format";
+import { resolveAssetUrl } from "@/src/utils/media";
+import type {
+  CalendarTournament,
+  HomeTournament,
+  PlayerTournament,
+} from "@/src/types/api";
+
+type EventCardTournament = CalendarTournament | HomeTournament | PlayerTournament;
 
 interface EventCardProps {
+  featured?: boolean;
   onPress?: () => void;
-  tournament: TournamentSummary;
+  tournament: EventCardTournament;
 }
 
-export function EventCard({ onPress, tournament }: EventCardProps) {
+export function EventCard({
+  featured = false,
+  onPress,
+  tournament,
+}: EventCardProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors, featured);
   const imageUrl = resolveAssetUrl(tournament.image);
   const status = getTournamentStatus(tournament.start, tournament.end);
-  const content = (
+  const cardContent = (
     <>
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.image} />
-      ) : null}
+      ) : (
+        <View style={styles.imageFallback}>
+          <Text style={styles.imageFallbackLabel}>HAVOK</Text>
+        </View>
+      )}
 
       <View style={styles.content}>
-        <View style={styles.tagsRow}>
+        <View style={styles.badgesRow}>
           <View
-            style={[styles.tag, status === "live" ? styles.liveTag : styles.statusTag]}
+            style={[
+              styles.badge,
+              status === "live"
+                ? styles.liveBadge
+                : status === "upcoming"
+                  ? styles.upcomingBadge
+                  : styles.pastBadge,
+            ]}
           >
             <Text
               style={[
-                styles.tagLabel,
-                status === "live" ? styles.liveTagLabel : styles.statusTagLabel,
+                styles.badgeLabel,
+                status === "live"
+                  ? styles.liveBadgeLabel
+                  : status === "upcoming"
+                    ? styles.upcomingBadgeLabel
+                    : styles.pastBadgeLabel,
               ]}
             >
-              {status === "live" ? "Live" : status === "upcoming" ? "A venir" : "Archive"}
+              {getTournamentStatusLabel(status)}
             </Text>
           </View>
 
           {tournament.teamFormat ? (
-            <View style={styles.tag}>
-              <Text style={styles.tagLabel}>{tournament.teamFormat}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>{tournament.teamFormat}</Text>
             </View>
           ) : null}
 
-          {tournament.gameMode || tournament.mode ? (
-            <View style={styles.tag}>
-              <Text style={styles.tagLabel}>
-                {tournament.gameMode || tournament.mode}
-              </Text>
+          {getTournamentMode(tournament) ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeLabel}>{getTournamentMode(tournament)}</Text>
             </View>
           ) : null}
         </View>
@@ -53,9 +84,6 @@ export function EventCard({ onPress, tournament }: EventCardProps) {
         <Text style={styles.meta}>
           {formatDateRange(tournament.start, tournament.end)}
         </Text>
-        {tournament.resolvedLocation ? (
-          <Text style={styles.location}>{tournament.resolvedLocation}</Text>
-        ) : null}
       </View>
     </>
   );
@@ -63,89 +91,104 @@ export function EventCard({ onPress, tournament }: EventCardProps) {
   if (onPress) {
     return (
       <Pressable onPress={onPress} style={styles.card}>
-        {content}
+        {cardContent}
       </Pressable>
     );
   }
 
-  return <View style={styles.card}>{content}</View>;
+  return <View style={styles.card}>{cardContent}</View>;
 }
 
-function getTournamentStatus(start: string, end: string) {
-  const now = Date.now();
-  const startTime = new Date(start).getTime();
-  const endTime = new Date(end).getTime();
-
-  if (now >= startTime && now <= endTime) {
-    return "live";
+function getTournamentMode(tournament: EventCardTournament) {
+  if ("gameMode" in tournament && tournament.gameMode) {
+    return tournament.gameMode;
   }
 
-  if (startTime > now) {
-    return "upcoming";
+  if ("mode" in tournament && tournament.mode) {
+    return tournament.mode;
   }
 
-  return "past";
+  return null;
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 14,
-    overflow: "hidden",
-  },
-  content: {
-    gap: 10,
-    padding: 18,
-  },
-  image: {
-    height: 190,
-    width: "100%",
-  },
-  liveTag: {
-    backgroundColor: colors.primaryText,
-  },
-  liveTagLabel: {
-    color: colors.cardStrong,
-  },
-  location: {
-    color: colors.primaryText,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  meta: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  statusTag: {
-    backgroundColor: colors.surfaceStrong,
-  },
-  statusTagLabel: {
-    color: colors.warning,
-  },
-  tag: {
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  tagLabel: {
-    color: colors.primaryText,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 19,
-    fontWeight: "800",
-    lineHeight: 25,
-  },
-});
+function createStyles(
+  colors: ReturnType<typeof useTheme>["theme"]["colors"],
+  featured: boolean,
+) {
+  return StyleSheet.create({
+    badge: {
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    badgeLabel: {
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    badgesRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderColor: featured ? colors.accentMuted : colors.border,
+      borderRadius: 28,
+      borderWidth: 1,
+      overflow: "hidden",
+    },
+    content: {
+      gap: 10,
+      padding: 18,
+    },
+    image: {
+      height: featured ? 220 : 168,
+      width: "100%",
+    },
+    imageFallback: {
+      alignItems: "center",
+      backgroundColor: colors.brandSurface,
+      height: featured ? 220 : 168,
+      justifyContent: "center",
+      width: "100%",
+    },
+    imageFallbackLabel: {
+      color: colors.accent,
+      fontSize: 24,
+      fontWeight: "900",
+      letterSpacing: 3,
+    },
+    liveBadge: {
+      backgroundColor: colors.liveSurface,
+    },
+    liveBadgeLabel: {
+      color: colors.live,
+    },
+    meta: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    pastBadge: {
+      backgroundColor: colors.surfaceTertiary,
+    },
+    pastBadgeLabel: {
+      color: colors.textMuted,
+    },
+    title: {
+      color: colors.text,
+      fontSize: featured ? 24 : 19,
+      fontWeight: "800",
+      letterSpacing: -0.4,
+      lineHeight: featured ? 30 : 24,
+    },
+    upcomingBadge: {
+      backgroundColor: colors.accentSurface,
+    },
+    upcomingBadgeLabel: {
+      color: colors.accent,
+    },
+  });
+}

@@ -1,39 +1,29 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
-import { colors } from "@/src/theme/colors";
+import { useTheme } from "@/src/theme/ThemeProvider";
 
 export default function TabsLayout() {
+  const { theme } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.background },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.mutedText,
+        sceneStyle: { backgroundColor: theme.colors.background },
+        tabBarActiveTintColor: theme.colors.accent,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.cardStrong,
-          borderTopColor: colors.border,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          borderRadius: 22,
-          bottom: 14,
-          height: 68,
-          left: 16,
-          paddingBottom: 10,
-          paddingTop: 10,
-          position: "absolute",
-          right: 16,
-          shadowColor: colors.shadow,
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.08,
-          shadowRadius: 20,
-        },
-        tabBarItemStyle: {
-          borderRadius: 16,
+          height: 74,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "700",
-          letterSpacing: 0.2,
         },
       }}
     >
@@ -41,24 +31,52 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Accueil",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              color={color}
+              name={focused ? "home" : "home-outline"}
+              size={size}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="calendrier"
         options={{
-          title: "Calendrier",
+          title: "Tournois",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              color={color}
+              name={focused ? "calendar" : "calendar-outline"}
+              size={size}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="players"
         options={{
           title: "Joueurs",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              color={color}
+              name={focused ? "people" : "people-outline"}
+              size={size}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Reglages",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              color={color}
+              name={focused ? "settings" : "settings-outline"}
+              size={size}
+            />
+          ),
         }}
       />
     </Tabs>

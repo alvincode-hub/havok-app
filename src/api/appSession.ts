@@ -1,20 +1,22 @@
-import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 import { createAppAttestation } from "@/src/api/appAttestation";
 import { buildApiUrl, getApiKeyHeaders } from "@/src/api/apiConfig";
+import {
+  readStoredString,
+  removeStoredString,
+  writeStoredString,
+} from "@/src/utils/storage";
+import {
+  logApiDebug,
+  logApiError,
+  logApiWarning,
+} from "@/src/utils/debug";
+import type { AppChallengeResponse, AppSessionResponse } from "@/src/types/api";
 
 const INSTALLATION_ID_KEY = "havok-installation-id";
 const SESSION_KEY = "havok-api-session";
-
-interface SessionResponse {
-  accessToken: string;
-  expiresAt: string;
-  expiresInSeconds: number;
-  success: boolean;
-  tokenType: string;
-}
 
 interface StoredSession {
   accessToken: string;
@@ -30,15 +32,15 @@ export async function getAppSessionAccessToken(forceRefresh = false) {
 }
 
 export async function clearStoredAppSession() {
-  await removeStoredValue(SESSION_KEY);
+  await removeStoredString(SESSION_KEY);
 }
 
 async function getOrCreateSession(forceRefresh: boolean) {
   if (!forceRefresh) {
-    const cachedSession = await readStoredSession();
+    const currentSession = await readStoredSession();
 
-    if (cachedSession && !isExpired(cachedSession.expiresAt)) {
-      return cachedSession;
+    if (currentSession && !isExpired(currentSession.expiresAt)) {
+      return currentSession;
     }
   }
 
@@ -53,28 +55,32 @@ async function getOrCreateSession(forceRefresh: boolean) {
 
 async function createSession() {
   const installationId = await getInstallationId();
-  const platform = Platform.OS;
+  const platform = getPlatform();
   const appVersion = getAppVersion();
 
-  const challengeResponse = await fetchSessionJson<{
-    challenge: string;
-    expiresAt: string;
-    success: boolean;
-    ttlSeconds: number;
-  }>("/api/app/challenge", {
+  logApiDebug("session.bootstrap_start", {
     appVersion,
     installationId,
     platform,
   });
 
+  const challengeResponse = await fetchSessionJson<AppChallengeResponse>(
+    "/api/app/challenge",
+    {
+      appVersion,
+      installationId,
+      platform,
+    },
+  );
+
   const attestation = await createAppAttestation({
+    appVersion,
     challenge: challengeResponse.challenge,
     installationId,
     platform,
-    appVersion,
   });
 
-  const sessionResponse = await fetchSessionJson<SessionResponse>(
+  const sessionResponse = await fetchSessionJson<AppSessionResponse>(
     "/api/app/session",
     {
       appVersion,
@@ -82,38 +88,52 @@ async function createSession() {
       challenge: challengeResponse.challenge,
       installationId,
       platform,
-    }
+    },
   );
 
-  const storedSession: StoredSession = {
+  const session: StoredSession = {
     accessToken: sessionResponse.accessToken,
     expiresAt: sessionResponse.expiresAt,
     tokenType: sessionResponse.tokenType,
   };
 
-  await writeStoredValue(SESSION_KEY, JSON.stringify(storedSession));
+  await writeStoredString(SESSION_KEY, JSON.stringify(session));
 
-  return storedSession;
+  logApiDebug("session.bootstrap_success", {
+    expiresAt: session.expiresAt,
+    installationId,
+    platform,
+  });
+
+  return session;
 }
 
 async function fetchSessionJson<T>(
   path: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
 ) {
-  const response = await fetch(buildApiUrl(path), {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...getApiKeyHeaders(true),
-    },
-    body: JSON.stringify(body),
-  });
+  const url = buildApiUrl(path);
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...getApiKeyHeaders(true),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    logApiError("session.network_failure", error, { path, url });
+    throw error;
+  }
 
   const payload = await readJsonSafe(response);
 
   if (!response.ok) {
-    const message =
+    const errorMessage =
       typeof payload === "object" &&
       payload !== null &&
       "error" in payload &&
@@ -121,91 +141,83 @@ async function fetchSessionJson<T>(
         ? payload.error
         : `La creation de session a echoue (${response.status}).`;
 
-    throw new Error(message);
+    logApiError("session.http_failure", errorMessage, {
+      path,
+      payload,
+      status: response.status,
+      url,
+    });
+    throw new Error(errorMessage);
   }
+
+  logApiDebug("session.step_success", {
+    path,
+    status: response.status,
+    url,
+  });
 
   return payload as T;
 }
 
 async function readStoredSession() {
-  const rawSession = await readStoredValue(SESSION_KEY);
+  const storedSession = await readStoredString(SESSION_KEY);
 
-  if (!rawSession) {
+  if (!storedSession) {
     return null;
   }
 
   try {
-    return JSON.parse(rawSession) as StoredSession;
+    return JSON.parse(storedSession) as StoredSession;
   } catch {
-    await removeStoredValue(SESSION_KEY);
+    logApiWarning("session.cache_corrupted");
+    await removeStoredString(SESSION_KEY);
     return null;
   }
 }
 
 async function getInstallationId() {
-  const storedInstallationId = await readStoredValue(INSTALLATION_ID_KEY);
+  const storedInstallationId = await readStoredString(INSTALLATION_ID_KEY);
 
   if (storedInstallationId) {
     return storedInstallationId;
   }
 
   const nextInstallationId = createInstallationId();
-  await writeStoredValue(INSTALLATION_ID_KEY, nextInstallationId);
+  await writeStoredString(INSTALLATION_ID_KEY, nextInstallationId);
   return nextInstallationId;
 }
 
 function createInstallationId() {
-  const randomPart = Math.random().toString(36).slice(2, 12);
-  return `havok-${Date.now().toString(36)}-${randomPart}`;
+  return `havok-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 12)}`;
 }
 
 function getAppVersion() {
-  return (
-    Constants.expoConfig?.version ??
-    Constants.nativeAppVersion ??
-    "dev"
-  );
+  return Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? "dev";
+}
+
+function getPlatform() {
+  if (Platform.OS === "ios" || Platform.OS === "android") {
+    return Platform.OS;
+  }
+
+  return "web";
 }
 
 function isExpired(expiresAt: string) {
-  const expiresAtMs = Date.parse(expiresAt);
+  const expirationTime = Date.parse(expiresAt);
 
-  if (Number.isNaN(expiresAtMs)) {
+  if (Number.isNaN(expirationTime)) {
     return true;
   }
 
-  return expiresAtMs <= Date.now() + 15 * 1000;
-}
-
-async function readStoredValue(key: string) {
-  if (Platform.OS === "web") {
-    return globalThis.localStorage?.getItem(key) ?? null;
-  }
-
-  return SecureStore.getItemAsync(key);
-}
-
-async function writeStoredValue(key: string, value: string) {
-  if (Platform.OS === "web") {
-    globalThis.localStorage?.setItem(key, value);
-    return;
-  }
-
-  await SecureStore.setItemAsync(key, value);
-}
-
-async function removeStoredValue(key: string) {
-  if (Platform.OS === "web") {
-    globalThis.localStorage?.removeItem(key);
-    return;
-  }
-
-  await SecureStore.deleteItemAsync(key);
+  return expirationTime <= Date.now() + 15_000;
 }
 
 async function readJsonSafe(response: Response) {
   try {
-    return await response.json();
+    return (await response.json()) as unknown;
   } catch {
     return null;
   }

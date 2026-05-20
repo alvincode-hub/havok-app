@@ -1,22 +1,34 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
-import { colors } from "@/src/theme/colors";
+import { ThemeProvider, useTheme } from "@/src/theme/ThemeProvider";
+import { logRuntimeConfiguration } from "@/src/utils/debug";
 
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootNavigator />
+    </ThemeProvider>
+  );
+}
+
+function RootNavigator() {
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    logRuntimeConfiguration();
+  }, []);
+
   return (
     <>
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: theme.colors.background },
           headerShown: false,
-          headerShadowVisible: false,
         }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-      <StatusBar style="dark" />
+      />
+      <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
     </>
   );
 }

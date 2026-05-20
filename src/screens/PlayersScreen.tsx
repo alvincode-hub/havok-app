@@ -1,219 +1,118 @@
 import { useDeferredValue, useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import { havokApi } from "@/src/api/havokApi";
 import { AppScreen } from "@/src/components/AppScreen";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ErrorState } from "@/src/components/ErrorState";
-import { SurfaceCard } from "@/src/components/SurfaceCard";
+import { LoadingState } from "@/src/components/LoadingState";
+import { PlayerCard } from "@/src/components/PlayerCard";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAsyncResource } from "@/src/hooks/useAsyncResource";
-import { colors } from "@/src/theme/colors";
-import type { PlayerSummary } from "@/src/types/api";
+import { getPlayerHref } from "@/src/navigation/routes";
+import { useTheme } from "@/src/theme/ThemeProvider";
 
 export function PlayersScreen() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm.trim().toLowerCase());
-  const { data, error, isLoading, refresh } = useAsyncResource(
-    () => havokApi.getPlayers()
-  );
+  const { data, error, isLoading, refresh } = useAsyncResource(() => {
+    return havokApi.getPlayers();
+  });
 
-  const players = (data ?? []).filter((player) => {
+  const filteredPlayers = (data ?? []).filter((player) => {
     if (!deferredSearchTerm) {
       return true;
     }
 
-    return player.name.toLowerCase().includes(deferredSearchTerm);
+    return [player.name, player.pseudo, player.country]
+      .filter(Boolean)
+      .some((value) => {
+        return String(value).toLowerCase().includes(deferredSearchTerm);
+      });
   });
 
   return (
     <AppScreen
-      subtitle="Liste simple des joueurs retournes par le backend, avec recherche locale."
+      subtitle="La liste publique des joueurs suivis par Havok."
       title="Joueurs"
     >
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recherche</Text>
-        <Text style={styles.sectionDescription}>
-          Filtrage local sur les joueurs recuperes depuis `/api/players`.
-        </Text>
+      <View>
+        <SectionHeader
+          subtitle="Recherche locale sur les joueurs recuperes depuis le backend."
+          title="Recherche"
+        />
 
         <TextInput
           onChangeText={setSearchTerm}
           placeholder="Rechercher un joueur"
-          placeholderTextColor={colors.mutedText}
+          placeholderTextColor={theme.colors.placeholder}
           style={styles.input}
           value={searchTerm}
         />
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total backend</Text>
-            <Text style={styles.summaryValue}>{data?.length ?? 0}</Text>
-          </View>
+      {isLoading ? <LoadingState label="Chargement des joueurs..." /> : null}
 
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Resultats filtres</Text>
-            <Text style={styles.summaryValue}>{players.length}</Text>
-          </View>
-        </View>
-      </View>
+      {error ? <ErrorState message={error} onRetry={refresh} /> : null}
 
-      <View style={styles.section}>
-        {isLoading ? (
-          <View style={styles.loadingBlock}>
-            <ActivityIndicator color={colors.accent} />
-            <Text style={styles.loadingText}>Chargement des joueurs...</Text>
-          </View>
-        ) : null}
-
-        {error ? <ErrorState message={error} onRetry={refresh} /> : null}
-
-        {!isLoading && !error && players.length === 0 ? (
-          <EmptyState
-            description="Aucun joueur ne correspond a cette recherche."
-            title="Aucun resultat"
+      {!isLoading && !error ? (
+        <View>
+          <SectionHeader
+            subtitle={`${filteredPlayers.length} joueur${filteredPlayers.length > 1 ? "s" : ""} affiche${filteredPlayers.length > 1 ? "s" : ""}.`}
+            title="Roster"
           />
-        ) : null}
 
-        {!error
-          ? players.map((player) => {
-              return <PlayerRow key={player.id} player={player} />;
-            })
-          : null}
-      </View>
+          {filteredPlayers.length > 0 ? (
+            <View style={styles.list}>
+              {filteredPlayers.map((player) => {
+                return (
+                  <Pressable
+                    key={player.id}
+                    onPress={() => router.push(getPlayerHref(player.id))}
+                  >
+                    <PlayerCard
+                      caption={buildPlayerCaption(player)}
+                      player={player}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <EmptyState
+              description="Aucun joueur ne correspond a cette recherche."
+              title="Aucun resultat"
+            />
+          )}
+        </View>
+      ) : null}
     </AppScreen>
   );
 }
 
-function getPlayerCaption(player: PlayerSummary) {
+function buildPlayerCaption(player: Awaited<ReturnType<typeof havokApi.getPlayers>>[number]) {
   const parts = [player.country, player.pseudo].filter(Boolean);
-
-  if (typeof player.top5 === "number" && player.top5 > 0) {
-    parts.push(`Top 5: ${player.top5}`);
-  }
-
-  return parts.length > 0 ? parts.join(" - ") : player.id;
+  return parts.length > 0 ? parts.join(" - ") : "Profil Havok";
 }
 
-function PlayerRow({ player }: { player: PlayerSummary }) {
-  return (
-    <SurfaceCard>
-      <View style={styles.playerRow}>
-        <View style={styles.playerCopy}>
-          <Text style={styles.playerName}>{player.name}</Text>
-          <Text style={styles.playerCaption}>{getPlayerCaption(player)}</Text>
-        </View>
-
-        <View style={styles.badge}>
-          <Text style={styles.badgeLabel}>
-            {player.bestTop ? `Top ${player.bestTop}` : "Actif"}
-          </Text>
-        </View>
-      </View>
-    </SurfaceCard>
-  );
+function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
+  return StyleSheet.create({
+    input: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 18,
+      borderWidth: 1,
+      color: colors.text,
+      fontSize: 15,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    list: {
+      gap: 12,
+    },
+  });
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: 999,
-    justifyContent: "center",
-    minWidth: 72,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  badgeLabel: {
-    color: colors.primaryText,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  input: {
-    backgroundColor: colors.cardStrong,
-    borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: 1,
-    color: colors.text,
-    fontSize: 15,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-  },
-  loadingBlock: {
-    alignItems: "center",
-    gap: 12,
-    marginTop: 8,
-  },
-  loadingText: {
-    color: colors.mutedText,
-    fontSize: 14,
-  },
-  playerCaption: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  playerCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  playerName: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  playerRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionDescription: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  summaryCard: {
-    backgroundColor: colors.cardStrong,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    flex: 1,
-    gap: 6,
-    padding: 16,
-  },
-  summaryLabel: {
-    color: colors.mutedText,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  summaryValue: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-});

@@ -1,248 +1,295 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { havokApi } from "@/src/api/havokApi";
 import { AppScreen } from "@/src/components/AppScreen";
 import { EmptyState } from "@/src/components/EmptyState";
 import { ErrorState } from "@/src/components/ErrorState";
+import { EventCard } from "@/src/components/EventCard";
+import { LoadingState } from "@/src/components/LoadingState";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { SurfaceCard } from "@/src/components/SurfaceCard";
 import { useAsyncResource } from "@/src/hooks/useAsyncResource";
-import {
-  formatDateTime,
-  getTournamentLabel,
-} from "@/src/lib/format";
-import { colors } from "@/src/theme/colors";
-import type { TournamentSummary } from "@/src/types/api";
+import { getPlayerHref, getWindowHref } from "@/src/navigation/routes";
+import { useTheme } from "@/src/theme/ThemeProvider";
+import type { HomeNewsItem, LastPlayedPlace } from "@/src/types/api";
+import { formatDate, formatPlacement, formatPoints } from "@/src/utils/format";
+import { resolveAssetUrl } from "@/src/utils/media";
 
 export function HomeScreen() {
-  const { data, error, isLoading, refresh } = useAsyncResource(async () => {
-    const [health, home] = await Promise.all([
-      havokApi.getHealth(),
-      havokApi.getHome(),
-    ]);
-
-    return {
-      health,
-      home,
-    };
+  const router = useRouter();
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
+  const { data, error, isLoading, refresh } = useAsyncResource(() => {
+    return havokApi.getHome();
   });
 
-  const homeData = data?.home.data ?? null;
-  const liveTournament = homeData?.liveTournament ?? null;
-  const lastPlayedTournament = homeData?.lastPlayedWindow?.tournament ?? null;
-  const upcomingTournaments = homeData?.upcomingTournaments ?? [];
-  const healthLabel =
-    data?.health.message || data?.health.status || "Connexion en attente";
+  const heroTournament =
+    data?.liveTournament ??
+    data?.upcomingTournaments[0] ??
+    data?.lastPlayedWindow?.tournament ??
+    null;
+  const upcomingTournaments = data?.upcomingTournaments.slice(0, 3) ?? [];
+  const latestPlaces = data?.lastPlayedWindow?.places?.slice(0, 6) ?? [];
+  const latestTournament = data?.lastPlayedWindow?.tournament ?? null;
+  const hasNews = Boolean(data?.actu.length);
 
   return (
     <AppScreen
-      subtitle="Base minimale de l'app avec la navigation principale et les appels utiles au backend."
+      subtitle="Le resume public Havok, branche directement sur le backend."
       title="Accueil"
     >
-      <View style={styles.metricsRow}>
-        <MetricCard
-          label="Etat serveur"
-          value={error ? "Erreur" : healthLabel}
-        />
-        <MetricCard
-          label="Tournois a venir"
-          value={`${upcomingTournaments.length}`}
-        />
-        <MetricCard label="Actu" value={`${homeData?.actu.length ?? 0}`} />
-      </View>
+      {isLoading ? <LoadingState label="Chargement de l accueil..." /> : null}
 
-      {isLoading ? (
-        <View style={styles.loadingBlock}>
-          <ActivityIndicator color={colors.accent} />
-          <Text style={styles.loadingText}>Chargement des donnees...</Text>
+      {error ? <ErrorState message={error} onRetry={refresh} /> : null}
+
+      {!isLoading && !error && heroTournament ? (
+        <View>
+          <SectionHeader
+            subtitle={
+              data?.liveTournament
+                ? "Le tournoi en cours passe en premier."
+                : "Le prochain tournoi important remonte en tete."
+            }
+            title="A la une"
+          />
+
+          <EventCard
+            featured
+            onPress={() => router.push(getWindowHref(heroTournament.windowId))}
+            tournament={heroTournament}
+          />
         </View>
       ) : null}
 
-      {error ? (
-        <View style={styles.section}>
-          <ErrorState message={error} onRetry={refresh} />
-        </View>
-      ) : null}
+      {!isLoading && !error ? (
+        <View>
+          <SectionHeader
+            subtitle="Les prochaines dates publiques a ne pas manquer."
+            title="A venir"
+          />
 
-      {homeData ? (
-        <>
-          <View style={styles.section}>
-            <SectionTitle
-              description={
-                data?.home.updatedAt
-                  ? `Derniere synchro: ${formatDateTime(data.home.updatedAt)}`
-                  : "Donnees chargees depuis /api/home"
-              }
-              title="Tournoi live"
-            />
-
-            {liveTournament ? (
-              <TournamentCard tournament={liveTournament} />
-            ) : (
-              <EmptyState
-                description="Le backend ne renvoie pas de tournoi live pour le moment."
-                title="Aucun live en cours"
-              />
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <SectionTitle
-              description="Apercu rapide des prochaines fenetres disponibles."
-              title="Prochains tournois"
-            />
-
-            {upcomingTournaments.length > 0 ? (
-              upcomingTournaments.slice(0, 3).map((tournament) => {
+          {upcomingTournaments.length > 0 ? (
+            <View style={styles.stack}>
+              {upcomingTournaments.map((tournament) => {
                 return (
-                  <TournamentCard
+                  <EventCard
                     key={tournament.windowId}
+                    onPress={() => router.push(getWindowHref(tournament.windowId))}
                     tournament={tournament}
                   />
                 );
-              })
-            ) : (
-              <EmptyState
-                description="Aucun tournoi a venir dans la reponse du backend."
-                title="Liste vide"
-              />
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <SectionTitle
-              description="Derniere fenetre exposee par les donnees du serveur."
-              title="Derniere fenetre jouee"
+              })}
+            </View>
+          ) : (
+            <EmptyState
+              description="Aucun tournoi a venir n est disponible pour le moment."
+              title="Rien a venir"
             />
+          )}
+        </View>
+      ) : null}
 
-            {lastPlayedTournament ? (
-              <SurfaceCard>
-                <Text style={styles.cardTitle}>
-                  {lastPlayedTournament.tournamentName}
+      {!isLoading && !error ? (
+        <View>
+          <SectionHeader
+            subtitle={
+              latestTournament
+                ? `${latestTournament.tournamentName} - ${formatDate(latestTournament.start)}`
+                : "Les derniers resultats Havok s affichent ici des qu ils sont disponibles."
+            }
+            title="Derniers resultats Havok"
+          />
+
+          {latestTournament ? (
+            <Pressable
+              onPress={() => router.push(getWindowHref(latestTournament.windowId))}
+            >
+              <SurfaceCard style={styles.latestHeaderCard}>
+                <Text style={styles.latestHeaderTitle}>
+                  {latestTournament.tournamentName}
                 </Text>
-                <Text style={styles.cardMeta}>
-                  {formatDateTime(lastPlayedTournament.start)}
-                </Text>
-                <Text style={styles.cardMeta}>
-                  {lastPlayedTournament.mode || "Mode inconnu"}
+                <Text style={styles.latestHeaderMeta}>
+                  Ouvrir le detail du tournoi
                 </Text>
               </SurfaceCard>
-            ) : (
-              <EmptyState
-                description="Le backend n'a pas encore fourni de derniere fenetre jouee."
-                title="Aucune donnee"
-              />
-            )}
+            </Pressable>
+          ) : null}
+
+          {latestPlaces.length > 0 ? (
+            <View style={styles.resultsGrid}>
+              {latestPlaces.map((place, index) => {
+                return (
+                  <LatestPlaceCard
+                    key={`${place.name}-${index}`}
+                    onPress={
+                      place.accountId
+                        ? () => router.push(getPlayerHref(place.accountId as string))
+                        : undefined
+                    }
+                    place={place}
+                  />
+                );
+              })}
+            </View>
+          ) : (
+            <EmptyState
+              description="Aucun resultat joueur Havok n est remonte pour le moment."
+              title="Resultats indisponibles"
+            />
+          )}
+        </View>
+      ) : null}
+
+      {!isLoading && !error && hasNews ? (
+        <View>
+          <SectionHeader
+            subtitle="Les informations utiles remontees par le backend."
+            title="Actu"
+          />
+
+          <View style={styles.stack}>
+            {(data?.actu ?? []).map((item, index) => {
+              return <NewsCard item={item} key={item.id ?? `news-${index}`} />;
+            })}
           </View>
-        </>
+        </View>
       ) : null}
     </AppScreen>
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text numberOfLines={2} style={styles.metricValue}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function SectionTitle({
-  description,
-  title,
+function LatestPlaceCard({
+  onPress,
+  place,
 }: {
-  description: string;
-  title: string;
+  onPress?: () => void;
+  place: LastPlayedPlace;
 }) {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionDescription}>{description}</Text>
-    </View>
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
+
+  const content = (
+    <>
+      <Text style={styles.latestResultName}>{place.name}</Text>
+      <Text style={styles.latestResultMeta}>
+        {formatPlacement(place.result?.rank)} - {formatPoints(place.result?.points)}
+      </Text>
+      <Text style={styles.latestResultMeta}>
+        {place.result?.kills ?? 0} kills - {place.result?.wins ?? 0} wins
+      </Text>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={styles.latestResultCard}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.latestResultCard}>{content}</View>;
 }
 
-function TournamentCard({ tournament }: { tournament: TournamentSummary }) {
+function NewsCard({ item }: { item: HomeNewsItem }) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
+  const imageUrl = resolveAssetUrl(item.image);
+
   return (
     <SurfaceCard>
-      <Text style={styles.cardTitle}>{getTournamentLabel(tournament)}</Text>
-      <Text style={styles.cardMeta}>{formatDateTime(tournament.start)}</Text>
-      <Text style={styles.cardMeta}>
-        {tournament.teamFormat ||
-          tournament.gameMode ||
-          tournament.mode ||
-          "Format inconnu"}
-      </Text>
+      <View style={styles.newsCard}>
+        {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.newsImage} /> : null}
+
+        <View style={styles.newsCopy}>
+          <Text style={styles.newsTitle}>{getNewsTitle(item)}</Text>
+          <Text style={styles.newsDescription}>{getNewsDescription(item)}</Text>
+          {item.date ? <Text style={styles.newsDate}>{formatDate(item.date)}</Text> : null}
+        </View>
+      </View>
     </SurfaceCard>
   );
 }
 
-const styles = StyleSheet.create({
-  cardMeta: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  loadingBlock: {
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  loadingText: {
-    color: colors.mutedText,
-    fontSize: 14,
-  },
-  metricCard: {
-    backgroundColor: colors.cardStrong,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    flex: 1,
-    gap: 8,
-    minHeight: 98,
-    padding: 16,
-  },
-  metricLabel: {
-    color: colors.mutedText,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  metricValue: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "800",
-    lineHeight: 24,
-  },
-  metricsRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionDescription: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  sectionHeader: {
-    gap: 4,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-});
+function getNewsTitle(item: HomeNewsItem) {
+  return item.title ?? item.name ?? "Actualite Havok";
+}
+
+function getNewsDescription(item: HomeNewsItem) {
+  return item.description ?? item.text ?? "Nouvelle information disponible.";
+}
+
+function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
+  return StyleSheet.create({
+    latestHeaderCard: {
+      marginBottom: 12,
+    },
+    latestHeaderMeta: {
+      color: colors.accent,
+      fontSize: 13,
+      fontWeight: "700",
+      marginTop: 6,
+    },
+    latestHeaderTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: "800",
+    },
+    latestResultCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 20,
+      borderWidth: 1,
+      flexBasis: "48%",
+      gap: 8,
+      padding: 16,
+    },
+    latestResultMeta: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    latestResultName: {
+      color: colors.text,
+      fontSize: 16,
+      fontWeight: "800",
+    },
+    newsCard: {
+      flexDirection: "row",
+      gap: 14,
+    },
+    newsCopy: {
+      flex: 1,
+      gap: 8,
+    },
+    newsDate: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    newsDescription: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    newsImage: {
+      borderRadius: 18,
+      height: 88,
+      width: 88,
+    },
+    newsTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: "800",
+    },
+    resultsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    stack: {
+      gap: 12,
+    },
+  });
+}

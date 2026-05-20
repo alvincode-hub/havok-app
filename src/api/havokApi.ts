@@ -1,33 +1,40 @@
 import { requestJson } from "@/src/api/client";
 import type {
-  ApiEnvelope,
   ApiHealth,
+  CalendarTournament,
   HomeData,
   PlayerProfile,
   PlayerSummary,
-  TournamentSummary,
+  TournamentResults,
   TournamentWindowDetail,
-  TournamentWindowResults,
+  TournamentWindowGroup,
 } from "@/src/types/api";
 
 export const havokApi = {
+  getCalendar() {
+    return requestJson<CalendarTournament[]>("/api/tournaments/calendrier");
+  },
   getHealth() {
     return requestJson<ApiHealth>("/api/health", { requiresApiKey: false });
   },
   getHome() {
-    return requestJson<ApiEnvelope<HomeData>>("/api/home");
-  },
-  getCalendar() {
-    return requestJson<ApiEnvelope<TournamentSummary[]>>(
-      "/api/tournaments/calendrier"
-    );
-  },
-  getPlayers() {
-    return requestJson<PlayerSummary[]>("/api/players");
+    return requestJson<HomeData>("/api/home");
   },
   getPlayer(playerId: string) {
     return requestJson<PlayerProfile | null>("/api/player", {
       query: { playerId },
+    });
+  },
+  getPlayers() {
+    return requestJson<PlayerSummary[]>("/api/players");
+  },
+  getTournamentResults(windowId: string, page = 0, cumulative = false) {
+    return requestJson<TournamentResults | null>("/api/tournaments/results", {
+      query: {
+        cumulatif: cumulative ? 1 : undefined,
+        page,
+        windowId,
+      },
     });
   },
   getTournamentWindow(windowId: string) {
@@ -35,15 +42,15 @@ export const havokApi = {
       "/api/tournaments/window",
       {
         query: { windowId },
-      }
+      },
     );
   },
-  getTournamentResults(windowId: string) {
-    return requestJson<TournamentWindowResults | null>(
-      "/api/tournaments/results",
+  getTournamentWindowGroup(windowId: string) {
+    return requestJson<TournamentWindowGroup | null>(
+      "/api/tournaments/allWindow",
       {
         query: { windowId },
-      }
+      },
     );
   },
 };

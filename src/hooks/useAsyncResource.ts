@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { getUserFacingErrorMessage } from "@/src/utils/errors";
+
 interface AsyncResourceState<T> {
   data: T | null;
   error: string | null;
@@ -9,7 +11,7 @@ interface AsyncResourceState<T> {
 
 export function useAsyncResource<T>(
   loader: () => Promise<T>,
-  dependencyKey?: string | number | null
+  dependencyKey?: string | number | null,
 ): AsyncResourceState<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function useAsyncResource<T>(
 
     loaderRef
       .current()
-      .then((result: T) => {
+      .then((result) => {
         if (!isActive) {
           return;
         }
@@ -41,12 +43,7 @@ export function useAsyncResource<T>(
           return;
         }
 
-        const message =
-          caughtError instanceof Error
-            ? caughtError.message
-            : "Une erreur inconnue est survenue.";
-
-        setError(message);
+        setError(getUserFacingErrorMessage(caughtError));
       })
       .finally(() => {
         if (!isActive) {

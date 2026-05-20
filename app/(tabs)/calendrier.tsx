@@ -1,5 +1,5 @@
-import { CalendarScreen } from "@/src/screens/CalendarScreen";
+import { TournamentsScreen } from "@/src/screens/TournamentsScreen";
 
 export default function CalendarRoute() {
-  return <CalendarScreen />;
+  return <TournamentsScreen />;
 }

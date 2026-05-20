@@ -1,34 +1,40 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { colors } from "@/src/theme/colors";
+import { useTheme } from "@/src/theme/ThemeProvider";
 
 interface SectionHeaderProps {
-  description?: string;
+  subtitle?: string;
   title: string;
 }
 
-export function SectionHeader({ description, title }: SectionHeaderProps) {
+export function SectionHeader({ subtitle, title }: SectionHeaderProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: 4,
-    marginBottom: 12,
-  },
-  description: {
-    color: colors.mutedText,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 21,
-    fontWeight: "700",
-  },
-});
+function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
+  return StyleSheet.create({
+    container: {
+      gap: 4,
+      marginBottom: 12,
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    title: {
+      color: colors.text,
+      fontSize: 21,
+      fontWeight: "800",
+      letterSpacing: -0.3,
+    },
+  });
+}

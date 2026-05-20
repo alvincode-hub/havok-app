@@ -1,166 +1,237 @@
+export interface AppConfig {
+  apiBaseUrl: string;
+  apiKey: string;
+  attestationMode: string;
+  debugApi: boolean;
+}
+
 export interface ApiEnvelope<T> {
-  updatedAt: string;
   data: T;
+  updatedAt: string;
 }
 
 export interface ApiHealth {
-  status?: string;
   message?: string;
+  status?: string;
+  success?: boolean;
 }
 
-export interface TournamentSummary {
-  tournamentId: string;
-  windowId: string;
-  tournamentName?: string;
-  name?: string;
+export interface AppChallengeResponse {
+  challenge: string;
+  expiresAt: string;
+  success: boolean;
+  ttlSeconds: number;
+}
+
+export interface AppSessionResponse {
+  accessToken: string;
+  expiresAt: string;
+  expiresInSeconds: number;
+  success: boolean;
+  tokenType: string;
+}
+
+export interface HomeTournament {
+  end: string;
+  gameMode?: string | null;
   image?: string | null;
   start: string;
-  end: string;
   teamFormat?: string | null;
-  gameMode?: string | null;
-  mode?: string | null;
-  resolvedLocation?: string | null;
-}
-
-export interface Prize {
-  scoringType: string;
-  threshold: number;
-  rewardType: string;
-  value: string;
-  quantity: number;
-}
-
-export interface ScoreRule {
-  type: string;
-  value: number;
-  points: number;
-}
-
-export interface ScoreRuleSet {
-  id?: string;
-  leaderboardDefId?: string;
-  rule?: ScoreRule[];
-}
-
-export interface CastChannel {
-  channelName: string;
-  link: string;
-}
-
-export interface TournamentWindowDetail {
   tournamentId: string;
   tournamentName: string;
-  description: string;
-  type: string;
-  images?: {
-    square?: string;
-    tile?: string;
-    background?: string;
-  };
   windowId: string;
-  start: string;
-  end: string;
-  cast?: {
-    youtube?: CastChannel;
-    twitch?: CastChannel;
-  };
-  matchCap: number;
-  mode: string;
-  teamFormat: string;
-  anyRequiredTokens: string[];
-  blockedTokens: string[];
-  requiredTokens: string[];
-  requiresQualification: boolean;
-  leaderboardId: string | null;
-  prizes: Prize[];
-  scoreRules: ScoreRuleSet | null;
-  playerQual: PlayerQualification[];
 }
 
-export interface PlayerQualification {
-  accountId: string;
-  playerName: string;
+export interface HomeNewsItem {
+  date?: string | null;
+  description?: string | null;
+  id?: string | null;
   image?: string | null;
-  isThisPlayerQual: boolean;
+  name?: string | null;
+  text?: string | null;
+  title?: string | null;
+  tournament?: HomeTournament | null;
+}
+
+export interface LastPlayedPlace {
+  accountId?: string | null;
+  name: string;
+  result?: PlayerTournamentResultSummary | null;
 }
 
 export interface HomeData {
-  actu: unknown[];
-  liveTournament: TournamentSummary | null;
-  upcomingTournaments: TournamentSummary[];
+  actu: HomeNewsItem[];
   lastPlayedWindow?: {
-    tournament?: TournamentWindowDetail | null;
+    places?: LastPlayedPlace[];
+    tournament?: HomeTournament | null;
   } | null;
+  liveTournament: HomeTournament | null;
+  upcomingTournaments: HomeTournament[];
 }
 
-export interface PlayerSummary {
-  id: string;
+export interface CalendarTournament {
+  end: string;
+  image?: string | null;
+  mode?: string | null;
   name: string;
-  image?: string | null;
-  pseudo?: string | null;
-  countryFlag?: string | null;
-  country?: string | null;
-  top5?: number | null;
-  bestTop?: number | null;
+  start: string;
+  teamFormat?: string | null;
+  tournamentId: string;
+  windowId: string;
 }
 
-export interface PlayerTournament {
-  tournamentName?: string;
-  placement?: number | null;
-  eliminations?: number | null;
-  points?: number | null;
-  image?: string | null;
-  windowId?: string;
-  date?: string;
+export interface TournamentWindowGroupItem {
+  end: string;
+  name: string;
+  start: string;
+  windowId: string;
 }
 
-export interface PlayerProfile extends PlayerSummary {
-  pseudo?: string | null;
-  countryFlag?: string | null;
-  country?: string | null;
-  top5?: number | null;
-  bestTop?: number | null;
-  avgKill?: number | null;
-  avgTop?: number | null;
-  lastTournaments?: PlayerTournament[];
+export interface TournamentWindowGroup {
+  id: string;
+  windows: TournamentWindowGroupItem[];
 }
 
-export interface TournamentLeaderboardEntry {
-  rank: number;
-  names: string[];
+export interface Prize {
+  quantity?: number | null;
+  rewardType?: string | null;
+  scoringType?: string | null;
+  threshold?: number | null;
+  value?: string | null;
+}
+
+export interface ScoreRule {
   points: number;
-  nbGamesPlayed?: number | null;
+  type: string;
+  value: number;
+}
+
+export interface ScoreRuleSet {
+  id?: string | null;
+  leaderboardDefId?: string | null;
+  rule?: ScoreRule[] | null;
+}
+
+export interface CastChannel {
+  channelName?: string | null;
+  link?: string | null;
+}
+
+export interface PlayerQualification {
+  image?: string | null;
+  isThisPlayerQual?: boolean;
+  playerName: string;
+}
+
+export interface TournamentWindowDetail {
+  cast?: {
+    twitch?: CastChannel;
+    youtube?: CastChannel;
+  } | null;
+  description?: string | null;
+  end: string;
+  images?:
+    | {
+        background?: string | null;
+        square?: string | null;
+        tile?: string | null;
+      }
+    | string
+    | null;
+  matchCap?: number | null;
+  mode?: string | null;
+  playerQual: PlayerQualification[];
+  prizes: Prize[];
+  requiresQualification?: boolean | null;
+  scoreRules?: ScoreRuleSet | null;
+  start: string;
+  teamFormat?: string | null;
+  tournamentId: string;
+  tournamentName: string;
+  type?: string | null;
+  windowId: string;
+}
+
+export interface LeaderboardEntry {
   kills?: number | null;
+  labels?: string[] | null;
+  names: string[];
+  nbGamesPlayed?: number | null;
+  points: number;
+  pointsLabel?: string | null;
+  rank: number;
+  rankLabel?: string | null;
   wins?: number | null;
 }
 
-export interface TournamentTrackedPlayer {
-  accountId: string;
-  name: string;
+export interface HavokPlayerStatus {
   image?: string | null;
+  labels?: string[] | null;
+  name: string;
+  playerName?: string;
+  points?: number | null;
+  rank?: number | null;
+}
+
+export interface TrackedTournamentPlayer {
+  image?: string | null;
+  name: string;
 }
 
 export interface TournamentLeaderboard {
-  results: TournamentLeaderboardEntry[];
-  qualStatus?: TournamentQualStatus[];
+  id?: string | null;
+  qualStatus?: HavokPlayerStatus[] | null;
+  results: LeaderboardEntry[];
+  totalPages: number;
+  windowId?: string | null;
 }
 
-export interface TournamentQualStatus {
-  accountId: string;
-  name: string;
-  image?: string | null;
-  labels: string[];
-  rank?: number | null;
-  points?: number | null;
-}
-
-export interface TournamentWindowResults {
+export interface TournamentResults {
+  end: string;
+  leaderboard: TournamentLeaderboard | null;
+  players: TrackedTournamentPlayer[];
+  start: string;
   tournamentId: string;
   tournamentName: string;
   windowId: string;
-  start: string;
+}
+
+export interface PlayerSummary {
+  country?: string | null;
+  countryFlag?: string | null;
+  id: string;
+  image?: string | null;
+  name: string;
+  pseudo?: string | null;
+}
+
+export interface PlayerTournamentResultSummary {
+  kills?: number | null;
+  nbGamesPlayed?: number | null;
+  names?: string[] | null;
+  points?: number | null;
+  rank?: number | null;
+  top15s?: number | null;
+  top5s?: number | null;
+  wins?: number | null;
+}
+
+export interface PlayerTournament {
   end: string;
-  leaderboard: TournamentLeaderboard | null;
-  cumulatif?: TournamentLeaderboard | null;
-  players: TournamentTrackedPlayer[];
+  gameMode?: string | null;
+  image?: string | null;
+  result?: PlayerTournamentResultSummary | null;
+  start: string;
+  teamFormat?: string | null;
+  tournamentId: string;
+  tournamentName: string;
+  windowId: string;
+}
+
+export interface PlayerProfile extends PlayerSummary {
+  avgKill?: number | null;
+  avgTop?: number | null;
+  bestTop?: number | null;
+  lastTournaments: PlayerTournament[];
+  top5?: number | null;
 }

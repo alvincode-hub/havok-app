@@ -1,10 +1,19 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { resolveAssetUrl } from "@/src/lib/media";
-import type { PlayerProfile, PlayerQualification, PlayerSummary } from "@/src/types/api";
-import { colors } from "@/src/theme/colors";
+import { useTheme } from "@/src/theme/ThemeProvider";
+import { resolveAssetUrl } from "@/src/utils/media";
+import type {
+  HavokPlayerStatus,
+  PlayerProfile,
+  PlayerQualification,
+  PlayerSummary,
+} from "@/src/types/api";
 
-type PlayerCardData = PlayerSummary | PlayerProfile | PlayerQualification;
+type PlayerCardData =
+  | HavokPlayerStatus
+  | PlayerProfile
+  | PlayerQualification
+  | PlayerSummary;
 
 interface PlayerCardProps {
   caption?: string;
@@ -12,44 +21,25 @@ interface PlayerCardProps {
   player: PlayerCardData;
 }
 
-function getPlayerName(player: PlayerCardData) {
-  if ("playerName" in player) {
-    return player.playerName;
-  }
-
-  return player.name;
-}
-
-function getPlayerImage(player: PlayerCardData) {
-  return resolveAssetUrl(player.image);
-}
-
-function getPlayerFlag(player: PlayerCardData) {
-  if ("countryFlag" in player) {
-    return resolveAssetUrl(player.countryFlag);
-  }
-
-  return undefined;
-}
-
 export function PlayerCard({ caption, onPress, player }: PlayerCardProps) {
-  const imageUrl = getPlayerImage(player);
-  const flagUrl = getPlayerFlag(player);
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
+  const imageUrl = resolveAssetUrl(getPlayerImage(player));
+  const flagUrl = resolveAssetUrl(getPlayerFlag(player));
+
   const content = (
     <>
-      <View style={styles.media}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarFallback}>
-            <Text style={styles.avatarFallbackLabel}>
-              {getPlayerName(player).slice(0, 1).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarFallback}>
+          <Text style={styles.avatarFallbackLabel}>
+            {getPlayerName(player).slice(0, 1).toUpperCase()}
+          </Text>
+        </View>
+      )}
 
-      <View style={styles.content}>
+      <View style={styles.copy}>
         <Text style={styles.name}>{getPlayerName(player)}</Text>
         {caption ? <Text style={styles.caption}>{caption}</Text> : null}
       </View>
@@ -69,59 +59,76 @@ export function PlayerCard({ caption, onPress, player }: PlayerCardProps) {
   return <View style={styles.card}>{content}</View>;
 }
 
-const styles = StyleSheet.create({
-  avatar: {
-    borderRadius: 18,
-    height: 58,
-    width: 58,
-  },
-  avatarFallback: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceStrong,
-    borderRadius: 18,
-    height: 58,
-    justifyContent: "center",
-    width: 58,
-  },
-  avatarFallbackLabel: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  caption: {
-    color: colors.mutedText,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  card: {
-    alignItems: "center",
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: 24,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 14,
-    marginBottom: 12,
-    padding: 14,
-  },
-  content: {
-    flex: 1,
-    gap: 4,
-  },
-  flag: {
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 20,
-    width: 20,
-  },
-  media: {
-    minHeight: 58,
-    minWidth: 58,
-  },
-  name: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-});
+function getPlayerName(player: PlayerCardData) {
+  if ("playerName" in player && typeof player.playerName === "string") {
+    return player.playerName;
+  }
+
+  if ("name" in player && typeof player.name === "string") {
+    return player.name;
+  }
+
+  return "Joueur Havok";
+}
+
+function getPlayerImage(player: PlayerCardData) {
+  return "image" in player ? player.image : undefined;
+}
+
+function getPlayerFlag(player: PlayerCardData) {
+  return "countryFlag" in player ? player.countryFlag : undefined;
+}
+
+function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
+  return StyleSheet.create({
+    avatar: {
+      borderRadius: 18,
+      height: 58,
+      width: 58,
+    },
+    avatarFallback: {
+      alignItems: "center",
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: 18,
+      height: 58,
+      justifyContent: "center",
+      width: 58,
+    },
+    avatarFallbackLabel: {
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: "800",
+    },
+    caption: {
+      color: colors.textMuted,
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    card: {
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderRadius: 24,
+      borderWidth: 1,
+      flexDirection: "row",
+      gap: 14,
+      padding: 14,
+    },
+    copy: {
+      flex: 1,
+      gap: 4,
+    },
+    flag: {
+      borderColor: colors.border,
+      borderRadius: 999,
+      borderWidth: 1,
+      height: 22,
+      width: 22,
+    },
+    name: {
+      color: colors.text,
+      fontSize: 17,
+      fontWeight: "700",
+    },
+  });
+}

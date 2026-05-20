@@ -392,7 +392,7 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
       {otherWindows.length > 0 ? (
         <View>
           <SectionHeader
-            subtitle="Passe rapidement d une window a l autre."
+            subtitle="Passe rapidement d'une session à l'autre."
             title="Navigation windows"
           />
 
@@ -436,7 +436,6 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
 
       <View>
         <SectionHeader
-          subtitle="Menu compact pour eviter une page trop longue."
           title="Details"
         />
 
@@ -533,7 +532,7 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
             </SurfaceCard>
           ) : (
             <EmptyState
-              description="Le bareme n est pas disponible pour ce tournoi."
+              description="Le barème n'est pas disponible pour ce tournoi."
               title="Points indisponibles"
             />
           )
@@ -595,7 +594,7 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
             !leaderboardEntries.length &&
             !trackedPlayers.length ? (
               <EmptyState
-                description="Aucun resultat n est disponible sur cette page."
+                description="Aucun resultat n'est disponible sur cette page."
                 title="Leaderboard vide"
               />
             ) : null}

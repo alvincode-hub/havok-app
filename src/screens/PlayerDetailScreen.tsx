@@ -34,7 +34,7 @@ export function PlayerDetailScreen({ playerId }: { playerId: string }) {
 
       {!isLoading && !error && !data ? (
         <EmptyState
-          description="Le joueur demande n est pas disponible dans le backend."
+          description="Le joueur demande n'est pas disponible."
           title="Joueur introuvable"
         />
       ) : null}
@@ -88,7 +88,7 @@ export function PlayerDetailScreen({ playerId }: { playerId: string }) {
               </View>
             ) : (
               <EmptyState
-                description="Aucun tournoi recent n est disponible pour ce joueur."
+                description="Aucun tournoi recent n'est disponible pour ce joueur."
                 title="Historique vide"
               />
             )}

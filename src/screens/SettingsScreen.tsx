@@ -8,12 +8,10 @@ import { ThemePreferenceControl } from "@/src/components/ThemePreferenceControl"
 export function SettingsScreen() {
   return (
     <AppScreen
-      subtitle="Un ecran simple centre sur l experience utilisateur."
       title="Reglages"
     >
       <View>
         <SectionHeader
-          subtitle="Le mode sombre reste la reference visuelle."
           title="Theme"
         />
 

@@ -59,6 +59,12 @@ export function logRuntimeConfiguration() {
     );
   }
 
+  if (appConfig.attestationMode === "web" && Platform.OS !== "web") {
+    warnings.push(
+      "Web attestation mode only works on Expo web. Native iOS/Android builds still need a dedicated production attestation flow.",
+    );
+  }
+
   console.log("[HavokDebug] Runtime configuration", {
     apiBaseUrl: baseUrl,
     attestationMode: appConfig.attestationMode,

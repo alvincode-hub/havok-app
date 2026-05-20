@@ -113,9 +113,13 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
 EXPO_PUBLIC_API_KEY=replace-with-your-app-api-key
 EXPO_PUBLIC_APP_ATTESTATION_MODE=development
 EXPO_PUBLIC_DEBUG_API=true
+APP_IOS_BUNDLE_IDENTIFIER=com.havokapp.mobile
+APP_ANDROID_PACKAGE=com.havokapp.mobile
 ```
 
 You can use `.env` or `.env.local`.
+
+For a production web deployment, start from [HavokApp/.env.production.example](./.env.production.example) and use `EXPO_PUBLIC_APP_ATTESTATION_MODE=web`.
 
 Network notes:
 
@@ -172,4 +176,4 @@ Verified on 2026-05-20:
 
 ## Known limitation
 
-The app currently supports `development` attestation for local/dev/preprod flows. Native production attestation for Apple / Google is still not implemented in this repo.
+The app supports `development` attestation for local/dev/preprod flows and `web` attestation for Expo web production deployments. Native production attestation for Apple / Google is still not implemented in this repo.

@@ -95,8 +95,8 @@ export function HomeScreen() {
             </View>
           ) : (
             <EmptyState
-              description="Aucun tournoi a venir n est disponible pour le moment."
-              title="Rien a venir"
+              description="Aucun tournoi à venir n'est disponible pour le moment."
+              title="Rien à venir"
             />
           )}
         </View>
@@ -104,7 +104,7 @@ export function HomeScreen() {
 
       {!isLoading && !error ? (
         <View>
-          <SectionHeader title="Derniers resultats Havok"/>
+          <SectionHeader title="Derniers résultats Havok"/>
 
           {latestTournament ? (
             <EventCard
@@ -132,7 +132,7 @@ export function HomeScreen() {
             </View>
           ) : (
             <EmptyState
-              description="Aucun resultat joueur Havok n est remonte pour le moment."
+              description="Aucun résultat de joueur Havok n'est remonte pour le moment."
               title="Resultats indisponibles"
             />
           )}
@@ -217,7 +217,7 @@ function NewsCard({ item }: { item: HomeNewsItem }) {
 }
 
 function getNewsTitle(item: HomeNewsItem) {
-  return item.title ?? item.name ?? "Actualite Havok";
+  return item.title ?? item.name ?? "Actualité Havok";
 }
 
 function getNewsDescription(item: HomeNewsItem) {

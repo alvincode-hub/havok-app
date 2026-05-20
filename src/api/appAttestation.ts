@@ -1,5 +1,6 @@
 import { appConfig } from "@/src/api/apiConfig";
 import { logApiDebug, logApiError } from "@/src/utils/debug";
+import { Platform } from "react-native";
 
 export interface CreateAttestationInput {
   appVersion: string;
@@ -38,9 +39,38 @@ const developmentAttestationProvider: AttestationProvider = {
   },
 };
 
+const webAttestationProvider: AttestationProvider = {
+  async createAttestation(input) {
+    if (Platform.OS !== "web") {
+      throw new Error(
+        "Le mode d attestation web est reserve a Expo web. Utilise une attestation native pour iOS/Android.",
+      );
+    }
+
+    logApiDebug("attestation.web", {
+      appVersion: input.appVersion,
+      platform: input.platform,
+    });
+
+    return {
+      provider: "web",
+      payload: {
+        appVersion: input.appVersion,
+        challenge: input.challenge,
+        installationId: input.installationId,
+        platform: input.platform,
+      },
+    };
+  },
+};
+
 function getAttestationProvider(): AttestationProvider {
   if (appConfig.attestationMode === "development") {
     return developmentAttestationProvider;
+  }
+
+  if (appConfig.attestationMode === "web") {
+    return webAttestationProvider;
   }
 
   return {

@@ -13,3 +13,20 @@ export function getWindowHref(windowId: string): Href {
     params: { windowId },
   };
 }
+
+export function getSessionHref(
+  windowId: string,
+  accountId: string,
+  cumulatif: boolean,
+  page: number,
+): Href {
+  return {
+    pathname: "/session/[windowId]/[cumulatif]/[accountId]",
+    params: { 
+      windowId, 
+      accountId, 
+      cumulatif: cumulatif ? "true" : "false",
+      page: String(page),
+    },
+  };
+}

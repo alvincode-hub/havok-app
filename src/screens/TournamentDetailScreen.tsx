@@ -27,6 +27,7 @@ import type {
   TournamentResults,
   TournamentWindowDetail,
   TournamentWindowGroup,
+  LeaderboardEntry
 } from "@/src/types/api";
 import { logApiError } from "@/src/utils/debug";
 import { getUserFacingErrorMessage } from "@/src/utils/errors";
@@ -45,6 +46,7 @@ import {
   getPublicPrizeDisplay,
   shouldDisplayPrize,
 } from "@/src/utils/tournament";
+import { getSessionHref } from "@/src/navigation/routes";
 
 type ResultsMode = "cumulative" | "normal";
 type DetailSection =
@@ -620,7 +622,10 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
                       return (
                         <TrackedPlayerRow
                           key={`${player.accountId ?? player.name}-${player.rank ?? "na"}-${index}`}
+                          page={page}
                           player={player}
+                          windowId={windowId}
+                          resultsMode={resultsMode}
                         />
                       );
                     })}
@@ -643,9 +648,9 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
                       <TableHeaderCell label="Rank" style={styles.tableCellRank} />
                       <TableHeaderCell label="Team" style={styles.tableCellPlayers} />
                       <TableHeaderCell label="Pts" style={styles.tableCellPoints} />
-                      <TableHeaderCell label="G" style={styles.tableCellNumber} />
+                      <TableHeaderCell label="Games" style={styles.tableCellNumber} />
                       <TableHeaderCell label="Kills" style={styles.tableCellNumber} />
-                      <TableHeaderCell label="W" style={styles.tableCellNumber} />
+                      <TableHeaderCell label="Wins" style={styles.tableCellNumber} />
                     </View>
 
                     {leaderboardEntries.map((entry, index) => {
@@ -653,6 +658,9 @@ export function TournamentDetailScreen({ windowId }: { windowId: string }) {
                         <LeaderboardRow
                           entry={entry}
                           key={`${page}-${entry.rank}-${entry.points}-${index}`}
+                          page={page}
+                          windowId={windowId}
+                          resultsMode={resultsMode}
                         />
                       );
                     })}
@@ -862,16 +870,38 @@ function TableHeaderCell({
   );
 }
 
-function LeaderboardRow({
-  entry,
-}: {
-  entry: NonNullable<TournamentResults["leaderboard"]>["results"][number];
-}) {
+interface LeaderboardRowProps {
+  entry: LeaderboardEntry;
+  page: number;
+  windowId: string;
+  resultsMode: string;
+}
+
+function LeaderboardRow({ 
+  entry, 
+  page,
+  windowId, 
+  resultsMode 
+}: LeaderboardRowProps) {
+  const router = useRouter();
   const { theme } = useTheme();
   const styles = createStyles(theme.colors);
+  const accountId = entry.accountId
+  const cumulatif = resultsMode === "cumulative"?
+    true 
+    : false
+
+  const handlePlayerPress = () => {
+    if (accountId) {
+      router.push(getSessionHref(windowId, accountId, cumulatif, page));
+    }
+  };
 
   return (
-    <View style={styles.tableRow}>
+    <Pressable
+      onPress={handlePlayerPress}
+      style={styles.tableRowPressable}
+    >
       <View style={[styles.tableCell, styles.tableCellRank]}>
         <Text style={styles.tablePrimaryText}>
           {entry.rankLabel ?? formatPlacement(entry.rank)}
@@ -911,17 +941,37 @@ function LeaderboardRow({
       <View style={[styles.tableCell, styles.tableCellNumber]}>
         <Text style={styles.tablePrimaryText}>{formatCount(entry.wins)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-function TrackedPlayerRow({ player }: { player: TrackedLeaderboardPlayer }) {
+function TrackedPlayerRow({
+  page,
+  player,
+  windowId,
+  resultsMode
+}: {
+  page: number;
+  player: TrackedLeaderboardPlayer;
+  windowId: string;
+  resultsMode: string;
+}) {
+  const router = useRouter();
   const { theme } = useTheme();
   const styles = createStyles(theme.colors);
   const imageUrl = resolveAssetUrl(player.image);
+  const cumulatif = resultsMode === "cumulative"?
+    true 
+    : false
+
+  const handlePlayerPress = () => {
+    if (player.accountId) {
+      router.push(getSessionHref(windowId, player.accountId, cumulatif, page));
+    }
+  };
 
   return (
-    <View style={styles.tableRow}>
+    <Pressable onPress={handlePlayerPress} style={styles.tableRowPressable}>
       <View style={[styles.tableCell, styles.tableCellPlayer]}>
         <View style={styles.trackedPlayerCell}>
           {imageUrl ? (
@@ -965,7 +1015,7 @@ function TrackedPlayerRow({ player }: { player: TrackedLeaderboardPlayer }) {
           <Text style={styles.tableMutedText}>Suivi</Text>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -1376,10 +1426,10 @@ function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
       fontSize: 13,
       fontWeight: "800",
     },
-    tableRow: {
-      flexDirection: "row",
+    tableRowPressable: {
       borderTopColor: colors.border,
       borderTopWidth: 1,
+      flexDirection: "row",
     },
     tableInlineTagsRow: {
       flexDirection: "row",

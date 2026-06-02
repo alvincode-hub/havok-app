@@ -162,14 +162,33 @@ export interface TournamentWindowDetail {
 }
 
 export interface LeaderboardEntry {
+  accountId?: string | null;
+  accountIds?: string[] | null;
+  avrgKill?: number | null;
+  avrgPlacement?: number | null;
+  avrgPoints?: number | null;
   kills?: number | null;
   labels?: string[] | null;
   names: string[];
   nbGamesPlayed?: number | null;
   points: number;
+  pointsKills?: number | null;
   pointsLabel?: string | null;
+  pointsTop?: number | null;
   rank: number;
   rankLabel?: string | null;
+  sessionHistory?:
+    | {
+        end: string;
+        id: string;
+        kills?: number | null;
+        placement?: number | null;
+        timeAlived?: number | null;
+      }[]
+    | null;
+  teamAccountId?: string | null;
+  top15s?: number | null;
+  top5s?: number | null;
   wins?: number | null;
 }
 

@@ -41,7 +41,6 @@ export function HomeScreen() {
       {!isLoading && !error ? (
         <View>
           <SectionHeader title="Actu"/>
-
           {hasNews ? (
             <View style={styles.stack}>
               {(data?.actu ?? []).map((item, index) => {

@@ -1,5 +1,5 @@
 import { appConfig } from "@/src/api/apiConfig";
-import { logApiDebug, logApiError } from "@/src/utils/debug";
+import { logApiDebug, logApiError, logApiWarning } from "@/src/utils/debug";
 import { Platform } from "react-native";
 
 export interface CreateAttestationInput {
@@ -70,6 +70,14 @@ function getAttestationProvider(): AttestationProvider {
   }
 
   if (appConfig.attestationMode === "web") {
+    if (__DEV__ && Platform.OS !== "web") {
+      logApiWarning("attestation.web_fallback_to_development", {
+        attestationMode: appConfig.attestationMode,
+        platform: Platform.OS,
+      });
+      return developmentAttestationProvider;
+    }
+
     return webAttestationProvider;
   }
 

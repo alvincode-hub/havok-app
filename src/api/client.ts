@@ -1,4 +1,5 @@
-import { ApiConfigError, buildApiUrl, getApiKeyHeaders } from "@/src/api/apiConfig";
+import { ApiConfigError, appConfig, buildApiUrl, getApiKeyHeaders } from "@/src/api/apiConfig";
+import { Platform } from "react-native";
 import {
   clearStoredAppSession,
   getAppSessionAccessToken,
@@ -39,25 +40,42 @@ export async function requestJson<T>(
   const requiresSession = options.requiresSession ?? requiresApiKey;
   const method = options.method ?? "GET";
   const url = buildApiUrl(path, options.query);
+  let requestHeaders: Record<string, string>;
+
+  try {
+    requestHeaders = await getRequestHeaders({
+      forceRefreshSession: hasRetried,
+      headers: options.headers,
+      method,
+      requiresApiKey,
+      requiresSession,
+    });
+  } catch (error) {
+    logApiError("request.preflight_failure", error, {
+      attestationMode: appConfig.attestationMode,
+      method,
+      path,
+      platform: Platform.OS,
+      requiresSession,
+      url,
+    });
+    throw error;
+  }
 
   let response: Response;
 
   try {
     response = await fetch(url, {
       method,
-      headers: await getRequestHeaders({
-        forceRefreshSession: hasRetried,
-        headers: options.headers,
-        method,
-        requiresApiKey,
-        requiresSession,
-      }),
+      headers: requestHeaders,
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
   } catch (error) {
     logApiError("request.network_failure", error, {
+      attestationMode: appConfig.attestationMode,
       method,
       path,
+      platform: Platform.OS,
       requiresSession,
       url,
     });

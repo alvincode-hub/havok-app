@@ -1,4 +1,6 @@
+import { appConfig } from "@/src/api/apiConfig";
 import { requestJson } from "@/src/api/client";
+import { demoApi } from "@/src/api/demoData";
 import type {
   ApiHealth,
   CalendarTournament,
@@ -23,23 +25,47 @@ type RawTournamentResults = Omit<TournamentResults, "leaderboard"> & {
 
 export const havokApi = {
   getCalendar() {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getCalendar();
+    }
+
     return requestJson<CalendarTournament[]>("/api/tournaments/calendrier");
   },
   getHealth() {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getHealth();
+    }
+
     return requestJson<ApiHealth>("/api/health", { requiresApiKey: false });
   },
   getHome() {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getHome();
+    }
+
     return requestJson<HomeData>("/api/home");
   },
   getPlayer(playerId: string) {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getPlayer(playerId);
+    }
+
     return requestJson<PlayerProfile | null>("/api/player", {
       query: { playerId },
     });
   },
   getPlayers() {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getPlayers();
+    }
+
     return requestJson<PlayerSummary[]>("/api/players");
   },
   getTournamentResults(windowId: string, page = 0, cumulative = false) {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getTournamentResults(windowId, page, cumulative);
+    }
+
     return requestJson<RawTournamentResults | null>("/api/tournaments/results", {
       query: {
         cumulatif: cumulative ? 1 : undefined,
@@ -66,6 +92,10 @@ export const havokApi = {
     });
   },
   getTournamentWindow(windowId: string) {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getTournamentWindow(windowId);
+    }
+
     return requestJson<TournamentWindowDetail | null>(
       "/api/tournaments/window",
       {
@@ -74,6 +104,10 @@ export const havokApi = {
     );
   },
   getTournamentWindowGroup(windowId: string) {
+    if (appConfig.demoDataEnabled) {
+      return demoApi.getTournamentWindowGroup(windowId);
+    }
+
     return requestJson<TournamentWindowGroup | null>(
       "/api/tournaments/allWindow",
       {

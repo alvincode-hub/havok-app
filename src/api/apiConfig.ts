@@ -16,12 +16,15 @@ const attestationMode =
   process.env.EXPO_PUBLIC_APP_ATTESTATION_MODE?.trim() ?? "development";
 const debugApi =
   process.env.EXPO_PUBLIC_DEBUG_API?.trim().toLowerCase() === "true";
+const demoDataFlag = process.env.EXPO_PUBLIC_ENABLE_DEMO_DATA?.trim().toLowerCase();
+const demoDataEnabled = demoDataFlag ? demoDataFlag !== "false" : true;
 
 export const appConfig: AppConfig = {
   apiBaseUrl,
   apiKey,
   attestationMode,
   debugApi,
+  demoDataEnabled,
 };
 
 export const configStatus = {

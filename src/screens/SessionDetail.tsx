@@ -6,16 +6,9 @@ import type { LeaderboardEntry } from "@/src/types/api";
 import { AppScreen } from "@/src/components/AppScreen";
 import { SectionHeader } from "@/src/components/SectionHeader";
 import {
-  Alert,
-  Image,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleProp,
   StyleSheet,
   Text,
   View,
-  ViewStyle,
 } from "react-native";
 
 interface SessionStatsScreenProps {

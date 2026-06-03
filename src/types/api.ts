@@ -3,6 +3,7 @@ export interface AppConfig {
   apiKey: string;
   attestationMode: string;
   debugApi: boolean;
+  demoDataEnabled: boolean;
 }
 
 export interface ApiEnvelope<T> {

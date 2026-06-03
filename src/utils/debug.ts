@@ -68,6 +68,7 @@ export function logRuntimeConfiguration() {
   console.log("[HavokDebug] Runtime configuration", {
     apiBaseUrl: baseUrl,
     attestationMode: appConfig.attestationMode,
+    demoDataEnabled: appConfig.demoDataEnabled,
     hostType,
     platform: Platform.OS,
     warnings,

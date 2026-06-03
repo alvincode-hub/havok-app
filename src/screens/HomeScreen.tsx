@@ -3,6 +3,7 @@ import * as Linking from "expo-linking";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { appConfig } from "@/src/api/apiConfig";
 import { havokApi } from "@/src/api/havokApi";
 import { AppScreen } from "@/src/components/AppScreen";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -37,6 +38,17 @@ export function HomeScreen() {
       {isLoading ? <HomeScreenSkeleton /> : null}
 
       {error ? <ErrorState message={error} onRetry={refresh} /> : null}
+
+      {!isLoading && !error && appConfig.demoDataEnabled ? (
+        <SurfaceCard style={styles.alertCard}>
+          <Text style={styles.alertEyebrow}>Alerte demo</Text>
+          <Text style={styles.alertTitle}>Fausses donnees actives</Text>
+          <Text style={styles.alertDescription}>
+            Cette page utilise des donnees de demonstration. Certaines images,
+            stats, classements ou profils peuvent etre incomplets ou manquants.
+          </Text>
+        </SurfaceCard>
+      ) : null}
 
       {!isLoading && !error ? (
         <View>
@@ -243,6 +255,27 @@ function normalizeNewsLink(link?: string | null) {
 
 function createStyles(colors: ReturnType<typeof useTheme>["theme"]["colors"]) {
   return StyleSheet.create({
+    alertCard: {
+      backgroundColor: colors.accentSurface,
+      borderColor: colors.accent,
+      gap: 8,
+    },
+    alertDescription: {
+      color: colors.text,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    alertEyebrow: {
+      color: colors.accent,
+      fontSize: 11,
+      fontWeight: "800",
+      textTransform: "uppercase",
+    },
+    alertTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: "800",
+    },
     latestHeaderCard: {
       marginBottom: 12,
     },
